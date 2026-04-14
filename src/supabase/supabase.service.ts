@@ -20,4 +20,18 @@ export class SupabaseService {
   getClient() {
     return this.supabase;
   }
+
+  getClientForUser(token: string) {
+    const supabaseUrl = this.configService.get<string>('NEXT_PUBLIC_SUPABASE_URL');
+    const supabaseKey = this.configService.get<string>('NEXT_PUBLIC_SUPABASE_ANON_KEY');
+    
+    // Devolvemos un cliente con el token del usuario
+    return createClient(supabaseUrl!, supabaseKey!, {
+      global: {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      },
+    });
+  }
 }

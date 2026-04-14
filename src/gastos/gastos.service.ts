@@ -6,9 +6,9 @@ import { CreateGastoDto } from './dto/create-gasto.dto';
 export class GastosService {
   constructor(private readonly supabase: SupabaseService) {}
 
-  async create(createGastoDto: CreateGastoDto) {
+  async create(createGastoDto: CreateGastoDto, token?: string) {
     const { monto, descripcion, categoria, fecha } = createGastoDto;
-    const client = this.supabase.getClient();
+    const client = token ? this.supabase.getClientForUser(token) : this.supabase.getClient();
 
     const { data, error } = await client
       .from('gastos')
@@ -27,8 +27,8 @@ export class GastosService {
     return data;
   }
 
-  async findAll() {
-    const client = this.supabase.getClient();
+  async findAll(token?: string) {
+    const client = token ? this.supabase.getClientForUser(token) : this.supabase.getClient();
     const { data, error } = await client
       .from('gastos')
       .select('*')
@@ -38,8 +38,8 @@ export class GastosService {
     return data;
   }
 
-  async remove(id: string) {
-    const client = this.supabase.getClient();
+  async remove(id: string, token?: string) {
+    const client = token ? this.supabase.getClientForUser(token) : this.supabase.getClient();
     const { data, error } = await client
       .from('gastos')
       .delete()
@@ -49,8 +49,8 @@ export class GastosService {
     return data;
   }
 
-  async update(id: string, updateData: any) {
-    const client = this.supabase.getClient();
+  async update(id: string, updateData: any, token?: string) {
+    const client = token ? this.supabase.getClientForUser(token) : this.supabase.getClient();
     const { data, error } = await client
       .from('gastos')
       .update(updateData)

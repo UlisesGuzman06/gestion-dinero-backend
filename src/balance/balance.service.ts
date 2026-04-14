@@ -7,8 +7,8 @@ export class BalanceService {
 
   constructor(private readonly supabase: SupabaseService) {}
 
-  async getSummary() {
-    const client = this.supabase.getClient();
+  async getSummary(token?: string) {
+    const client = token ? this.supabase.getClientForUser(token) : this.supabase.getClient();
 
     try {
       // Consultamos todas las tablas

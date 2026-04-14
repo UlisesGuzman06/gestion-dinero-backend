@@ -5,8 +5,8 @@ import { SupabaseService } from '../supabase/supabase.service';
 export class GastosFijosService {
   constructor(private readonly supabase: SupabaseService) {}
 
-  async findAll() {
-    const client = this.supabase.getClient();
+  async findAll(token?: string) {
+    const client = token ? this.supabase.getClientForUser(token) : this.supabase.getClient();
     const { data, error } = await client
       .from('gastos_fijos')
       .select('*')
@@ -16,8 +16,8 @@ export class GastosFijosService {
     return data;
   }
 
-  async create(data: { nombre: string; monto: number; link?: string }) {
-    const client = this.supabase.getClient();
+  async create(data: { nombre: string; monto: number; link?: string }, token?: string) {
+    const client = token ? this.supabase.getClientForUser(token) : this.supabase.getClient();
     const { data: result, error } = await client
       .from('gastos_fijos')
       .insert([data])
@@ -28,8 +28,8 @@ export class GastosFijosService {
     return result;
   }
 
-  async remove(id: string) {
-    const client = this.supabase.getClient();
+  async remove(id: string, token?: string) {
+    const client = token ? this.supabase.getClientForUser(token) : this.supabase.getClient();
     const { error } = await client
       .from('gastos_fijos')
       .delete()
@@ -39,8 +39,8 @@ export class GastosFijosService {
     return { success: true };
   }
 
-  async update(id: string, updateData: any) {
-    const client = this.supabase.getClient();
+  async update(id: string, updateData: any, token?: string) {
+    const client = token ? this.supabase.getClientForUser(token) : this.supabase.getClient();
     const { data, error } = await client
       .from('gastos_fijos')
       .update(updateData)
