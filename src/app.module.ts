@@ -10,9 +10,14 @@ import { InversionesModule } from './inversiones/inversiones.module';
 import { GastosFijosModule } from './gastos-fijos/gastos-fijos.module';
 import { MercadoPagoModule } from './mercadopago/mercadopago.module';
 
+import { ScheduleModule } from '@nestjs/schedule';
+
+import { NotificationsModule } from './notifications/notifications.module';
+
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
+    ScheduleModule.forRoot(),
     SupabaseModule,
     IngresosModule,
     GastosModule,
@@ -20,6 +25,7 @@ import { MercadoPagoModule } from './mercadopago/mercadopago.module';
     InversionesModule,
     GastosFijosModule,
     MercadoPagoModule,
+    NotificationsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
