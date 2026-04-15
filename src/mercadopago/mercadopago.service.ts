@@ -29,19 +29,39 @@ export class MercadoPagoService {
           begin_date: beginDate.toISOString(),
           end_date: now.toISOString(),
           sort: 'date_created',
-          criteria: 'desc'
+          criteria: 'desc',
+          limit: 50
         }
       });
 
-      return (searchResult.results || []).map(p => ({
-        id: (p.id || '').toString(),
-        fecha: p.date_created,
-        monto: p.transaction_amount || 0,
-        descripcion: p.description || 'Transacción Mercado Pago',
-        tipo: p.operation_type === 'regular_payment' ? ((p.transaction_amount || 0) > 0 ? 'ingreso' : 'gasto') : 'otros',
-        plataforma: 'mercadopago',
-        estado: p.status
-      }));
+      const transactions = (searchResult.results || []).map(p => {
+        // En MP, casi todos los montos son positivos. 
+        // Si el estado es 'approved' y tiene un monto neto positivo, es ingreso.
+        // Pero para simplificar: si el p.operation_type es 'money_transfer' y p.transaction_amount es positivo,
+        // dependemos de si somos el pagador o receptor.
+        // Simplificación: si p.transaction_amount > 0 y no es un gasto explícito, es ingreso.
+        
+        let tipo = 'gasto';
+        if (p.operation_type === 'regular_payment' || p.operation_type === 'pos_payment' || p.operation_type === 'money_transfer') {
+             // Si el monto es positivo y el estado es approved, lo tratamos como ingreso si 
+             // el monto llega a nuestra cuenta.
+             // Para esta app, asumiremos que si aparece aquí es porque impacta nuestra cuenta.
+             tipo = p.transaction_amount > 0 ? 'ingreso' : 'gasto';
+        }
+
+        return {
+          id: (p.id || '').toString(),
+          fecha: p.date_created,
+          monto: p.transaction_amount || 0,
+          descripcion: p.description || `Pago ${p.operation_type}`,
+          tipo: tipo,
+          plataforma: 'mercadopago',
+          estado: p.status
+        };
+      });
+
+      this.logger.log(`Found ${transactions.length} MP transactions`);
+      return transactions;
     } catch (error) {
       this.logger.error('Error fetching Mercado Pago transactions:', error);
       return [];
