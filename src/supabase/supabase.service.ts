@@ -11,6 +11,9 @@ export class SupabaseService {
     const supabaseKey = this.configService.get<string>('NEXT_PUBLIC_SUPABASE_ANON_KEY');
 
     if (!supabaseUrl || !supabaseKey) {
+      console.error('CRITICAL: Supabase URL or Key is missing in environment variables!');
+      console.error('URL present:', !!supabaseUrl);
+      console.error('Key present:', !!supabaseKey);
       throw new Error('Supabase URL and Key must be provided in .env');
     }
 
