@@ -1,4 +1,4 @@
-import { Controller, Post, Body, UseGuards } from '@nestjs/common';
+import { Controller, Post, Body, Get, UseGuards } from '@nestjs/common';
 import { MercadoPagoService } from './mercadopago.service';
 import { AuthGuard } from '../supabase/auth.guard';
 
