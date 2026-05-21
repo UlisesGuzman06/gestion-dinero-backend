@@ -47,4 +47,8 @@ export class MercadoPagoService {
       throw error;
     }
   }
+
+  getTransactions() {
+    return [];
+  }
 }

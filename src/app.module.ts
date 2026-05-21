@@ -9,6 +9,8 @@ import { SupabaseModule } from './supabase/supabase.module';
 import { InversionesModule } from './inversiones/inversiones.module';
 import { GastosFijosModule } from './gastos-fijos/gastos-fijos.module';
 import { MercadoPagoModule } from './mercadopago/mercadopago.module';
+import { CotizacionesModule } from './cotizaciones/cotizaciones.module';
+import { IaModule } from './ia/ia.module';
 
 @Module({
   imports: [
@@ -20,6 +22,8 @@ import { MercadoPagoModule } from './mercadopago/mercadopago.module';
     InversionesModule,
     GastosFijosModule,
     MercadoPagoModule,
+    CotizacionesModule,
+    IaModule,
   ],
   controllers: [AppController],
   providers: [AppService],

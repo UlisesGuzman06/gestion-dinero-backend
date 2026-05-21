@@ -14,4 +14,10 @@ export class MercadoPagoController {
   ) {
     return this.mpService.createPreference(title, amount);
   }
+
+  @UseGuards(AuthGuard)
+  @Get('transactions')
+  getTransactions() {
+    return this.mpService.getTransactions();
+  }
 }

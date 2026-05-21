@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { SupabaseService } from '../supabase/supabase.service';
+import { InversionesService } from '../inversiones/inversiones.service';
 
 @Injectable()
 export class BalanceService {
@@ -7,6 +8,7 @@ export class BalanceService {
 
   constructor(
     private readonly supabase: SupabaseService,
+    private readonly inversionesService: InversionesService,
   ) {}
 
   async getSummary(token?: string) {
@@ -14,10 +16,10 @@ export class BalanceService {
 
     try {
       // Consultamos todas las tablas locales
-      const [ingresosRes, gastosRes, inversionesRes, fijosRes] = await Promise.all([
+      const [ingresosRes, gastosRes, inversionesData, fijosRes] = await Promise.all([
         client.from('ingresos').select('monto, monto_invertir'),
         client.from('gastos').select('monto'),
-        client.from('inversiones').select('monto'),
+        this.inversionesService.findAll(token),
         client.from('gastos_fijos').select('monto'),
       ]);
 
@@ -27,7 +29,7 @@ export class BalanceService {
       const totalGastosVariables = (gastosRes.data || []).reduce((acc, curr) => acc + Number(curr.monto || 0), 0);
       const totalGastosFijos = (fijosRes.data || []).reduce((acc, curr) => acc + Number(curr.monto || 0), 0);
       
-      const totalInvertidoReal = (inversionesRes.data || []).reduce((acc, curr) => acc + Number(curr.monto || 0), 0);
+      const totalInvertidoReal = (inversionesData || []).reduce((acc, curr) => acc + Number(curr.monto || 0), 0);
 
       // CÁLCULO FINAL: Ingresos - (Gastos Variables + Gastos Fijos) - Inversiones
       const totalGastos = totalGastosVariables + totalGastosFijos;
