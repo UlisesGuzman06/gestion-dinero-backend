@@ -11,7 +11,7 @@ export class BalanceService {
     private readonly inversionesService: InversionesService,
   ) {}
 
-  async getSummary(token?: string) {
+  async getSummary(token?: string, yearParam?: number, monthParam?: number) {
     const client = token ? this.supabase.getClientForUser(token) : this.supabase.getClient();
 
     try {
@@ -24,8 +24,8 @@ export class BalanceService {
       ]);
 
       const now = new Date();
-      const currentYear = now.getFullYear();
-      const currentMonth = now.getMonth();
+      const targetYear = yearParam !== undefined ? yearParam : now.getFullYear();
+      const targetMonth = monthParam !== undefined ? monthParam : now.getMonth();
 
       // Totales históricos para el balance acumulado disponible
       const totalIngresosLifetime = (ingresosRes.data || []).reduce((acc, curr) => acc + Number(curr.monto || 0), 0);
@@ -36,25 +36,49 @@ export class BalanceService {
       const totalGastosLifetime = totalGastosVariablesLifetime + totalGastosFijos;
       const balanceActual = totalIngresosLifetime - totalGastosLifetime - totalInvertidoReal;
 
-      // Filtrado por mes actual para las tarjetas mensuales
-      const ingresosMes = (ingresosRes.data || []).filter(item => {
-        if (!item.fecha) return false;
-        const d = new Date(item.fecha);
-        return d.getFullYear() === currentYear && d.getMonth() === currentMonth;
-      });
+      let totalIngresos: number;
+      let totalADestinarInversion: number;
+      let totalGastosVariables: number;
+      let totalGastos: number;
 
-      const gastosMes = (gastosRes.data || []).filter(item => {
-        if (!item.fecha) return false;
-        const d = new Date(item.fecha);
-        return d.getFullYear() === currentYear && d.getMonth() === currentMonth;
-      });
+      if (yearParam === undefined || monthParam === undefined) {
+        // Histórico acumulado (todos los meses)
+        totalIngresos = totalIngresosLifetime;
+        totalADestinarInversion = (ingresosRes.data || []).reduce((acc, curr) => acc + Number(curr.monto_invertir || 0), 0);
+        totalGastosVariables = totalGastosVariablesLifetime;
+        totalGastos = totalGastosVariables + totalGastosFijos;
 
-      const totalIngresos = ingresosMes.reduce((acc, curr) => acc + Number(curr.monto || 0), 0);
-      const totalADestinarInversion = ingresosMes.reduce((acc, curr) => acc + Number(curr.monto_invertir || 0), 0);
-      const totalGastosVariables = gastosMes.reduce((acc, curr) => acc + Number(curr.monto || 0), 0);
-      const totalGastos = totalGastosVariables + totalGastosFijos;
+        this.logger.log(`Balance Calculado Histórico: Disponible(${balanceActual}) | Ingresos(${totalIngresos}), Gastos(${totalGastos}), Sugerido Inv(${totalADestinarInversion})`);
+      } else {
+        // Extracción de año/mes timezone-safe basada en cadenas (evita desfasajes en días límite)
+        const getYearAndMonth = (dateStr: string) => {
+          const parts = dateStr.split('T')[0].split('-');
+          return {
+            year: parseInt(parts[0], 10),
+            month: parseInt(parts[1], 10) - 1,
+          };
+        };
 
-      this.logger.log(`Balance Calculado: Disponible(${balanceActual}) | Mes actual: Ingresos(${totalIngresos}), Gastos(${totalGastos}), Sugerido Inv(${totalADestinarInversion})`);
+        // Filtrado por período para las tarjetas mensuales
+        const ingresosMes = (ingresosRes.data || []).filter(item => {
+          if (!item.fecha) return false;
+          const { year, month } = getYearAndMonth(item.fecha);
+          return year === targetYear && month === targetMonth;
+        });
+
+        const gastosMes = (gastosRes.data || []).filter(item => {
+          if (!item.fecha) return false;
+          const { year, month } = getYearAndMonth(item.fecha);
+          return year === targetYear && month === targetMonth;
+        });
+
+        totalIngresos = ingresosMes.reduce((acc, curr) => acc + Number(curr.monto || 0), 0);
+        totalADestinarInversion = ingresosMes.reduce((acc, curr) => acc + Number(curr.monto_invertir || 0), 0);
+        totalGastosVariables = gastosMes.reduce((acc, curr) => acc + Number(curr.monto || 0), 0);
+        totalGastos = totalGastosVariables + totalGastosFijos;
+
+        this.logger.log(`Balance Calculado: Disponible(${balanceActual}) | Periodo ${targetYear}-${targetMonth + 1}: Ingresos(${totalIngresos}), Gastos(${totalGastos}), Sugerido Inv(${totalADestinarInversion})`);
+      }
 
       return {
         balanceActual,
