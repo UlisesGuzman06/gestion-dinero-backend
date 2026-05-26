@@ -17,25 +17,44 @@ export class BalanceService {
     try {
       // Consultamos todas las tablas locales
       const [ingresosRes, gastosRes, inversionesData, fijosRes] = await Promise.all([
-        client.from('ingresos').select('monto, monto_invertir'),
-        client.from('gastos').select('monto'),
+        client.from('ingresos').select('monto, monto_invertir, fecha'),
+        client.from('gastos').select('monto, fecha'),
         this.inversionesService.findAll(token),
         client.from('gastos_fijos').select('monto'),
       ]);
 
-      const totalIngresos = (ingresosRes.data || []).reduce((acc, curr) => acc + Number(curr.monto || 0), 0);
-      const totalADestinarInversion = (ingresosRes.data || []).reduce((acc, curr) => acc + Number(curr.monto_invertir || 0), 0);
-      
-      const totalGastosVariables = (gastosRes.data || []).reduce((acc, curr) => acc + Number(curr.monto || 0), 0);
+      const now = new Date();
+      const currentYear = now.getFullYear();
+      const currentMonth = now.getMonth();
+
+      // Totales históricos para el balance acumulado disponible
+      const totalIngresosLifetime = (ingresosRes.data || []).reduce((acc, curr) => acc + Number(curr.monto || 0), 0);
+      const totalGastosVariablesLifetime = (gastosRes.data || []).reduce((acc, curr) => acc + Number(curr.monto || 0), 0);
       const totalGastosFijos = (fijosRes.data || []).reduce((acc, curr) => acc + Number(curr.monto || 0), 0);
-      
       const totalInvertidoReal = (inversionesData || []).reduce((acc, curr) => acc + Number(curr.monto || 0), 0);
 
-      // CÁLCULO FINAL: Ingresos - (Gastos Variables + Gastos Fijos) - Inversiones
-      const totalGastos = totalGastosVariables + totalGastosFijos;
-      const balanceActual = totalIngresos - totalGastos - totalInvertidoReal;
+      const totalGastosLifetime = totalGastosVariablesLifetime + totalGastosFijos;
+      const balanceActual = totalIngresosLifetime - totalGastosLifetime - totalInvertidoReal;
 
-      this.logger.log(`Balance Calculado: Ingresos(${totalIngresos}) - GastosFijos(${totalGastosFijos}) - GastosVar(${totalGastosVariables}) - Inv(${totalInvertidoReal}) = ${balanceActual}`);
+      // Filtrado por mes actual para las tarjetas mensuales
+      const ingresosMes = (ingresosRes.data || []).filter(item => {
+        if (!item.fecha) return false;
+        const d = new Date(item.fecha);
+        return d.getFullYear() === currentYear && d.getMonth() === currentMonth;
+      });
+
+      const gastosMes = (gastosRes.data || []).filter(item => {
+        if (!item.fecha) return false;
+        const d = new Date(item.fecha);
+        return d.getFullYear() === currentYear && d.getMonth() === currentMonth;
+      });
+
+      const totalIngresos = ingresosMes.reduce((acc, curr) => acc + Number(curr.monto || 0), 0);
+      const totalADestinarInversion = ingresosMes.reduce((acc, curr) => acc + Number(curr.monto_invertir || 0), 0);
+      const totalGastosVariables = gastosMes.reduce((acc, curr) => acc + Number(curr.monto || 0), 0);
+      const totalGastos = totalGastosVariables + totalGastosFijos;
+
+      this.logger.log(`Balance Calculado: Disponible(${balanceActual}) | Mes actual: Ingresos(${totalIngresos}), Gastos(${totalGastos}), Sugerido Inv(${totalADestinarInversion})`);
 
       return {
         balanceActual,
